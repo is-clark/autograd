@@ -1,13 +1,13 @@
 import numpy as np
-from autograd.tensor import Tensor
 from abc import ABC, abstractmethod
 
 class Function(ABC):
-    def __init__(self, parents:tuple[Tensor, ...] ) -> None:
+    def __init__(self, parents:tuple['Tensor', ...] ) -> None:
         self.parents = parents
         
     @classmethod
-    def apply(cls, *parents:Tensor):
+    def apply(cls, *parents:'Tensor'):
+        from autograd.tensor import Tensor
         ctx = cls(parents)
 
         data = [t.data for t in parents]
@@ -41,4 +41,15 @@ class Mul(Function):
     def backward(self, grad_stream:np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         grad_x = self.y * grad_stream
         grad_y = self.x * grad_stream
+        return (grad_x, grad_y)
+
+class Matmul(Function):
+    def forward(self, x, y):
+        self.x = x
+        self.y = y
+        return x @ y
+
+    def backward(self, grad_stream:np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        grad_x = grad_stream @ self.y.T
+        grad_y = self.x.T @ grad_stream
         return (grad_x, grad_y)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 # import numpy.typing as npt
-import autograd.function as F
+from autograd.function import *
 
 
 class Tensor:
@@ -15,7 +15,7 @@ class Tensor:
     def zero_grad(self):
         self.grad = np.zeros_like(self.data)
 
-    def backward(self):
+    def backward(self, grad:np.ndarray = None):
         if not self.requires_grad:
             raise RuntimeError("Can't call backwards() on a Tensor that does not require grad")
 
@@ -32,7 +32,12 @@ class Tensor:
 
         build_topo(self)
 
-        self.grad = np.ones_like(self.data)
+        if grad is None:
+            self.grad = np.ones_like(self.data)
+        else:
+            if grad.shape != self.data.shape:
+                raise ValueError(f'Input gradient shape {grad.shape} must match Tensor shape {self.data.shape}')
+            self.grad = grad
 
         for t in reversed(topo_order):
             grad_stream = t.grad
@@ -50,10 +55,10 @@ class Tensor:
         return f"Tensor({tensor_repr}, requires_grad={self.requires_grad})"
     
     def __add__(self, other: Tensor) -> Tensor:
-        return F.Add.apply(self, other)
+        return Add.apply(self, other)
 
     def __mul__(self, other: Tensor) -> Tensor:
-        return F.Mul.apply(self, other)
+        return Mul.apply(self, other)
 
     def __matmul__(self, other:Tensor) -> Tensor:
-        return F.Matmul.apply(self.data, other)
+        return Matmul.apply(self, other)
